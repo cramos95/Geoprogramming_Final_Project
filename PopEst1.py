@@ -146,8 +146,8 @@ m.addDataFromPath(dataPath) #works up to this point
 
 #get newly added layer as popLyrFinal variable
 #Note, the layer imports as a group layer, and the sublayer needed is called 'Blocks', which is
-#is pretty generic, therefore, will get the layer into a variable by counting the number of features
-#for every layer in the map, if count==8174955, its the layer we want-tested in arcPro
+#is pretty generic and it seems inconsistent, somtimes called 'USA_BLOCK_GROUPS//Blocks, therefore, will get the layer into a variable by counting the number of features
+#for every layer in the map, if is feature layer and if count==8174955, its the layer we want. tested in arcPro
 for maplayer in m.listLayers():
     if maplayer.isFeatureLayer:
         if str(arcpy.management.GetCount(maplayer))=='8174955':
@@ -167,16 +167,31 @@ popLyrIntersect=arcpy.management.SelectLayerByLocation(popLyrFinal,'',inAreaFina
 
 ###########################################################
 ##PASS SELECTED POPULATION FEATURES AND DISSOLVED INPUT POLYGONS INTO TABULATE INTERSECTIONS TOOL
-##WITH INPUT POLYGONS AS ZONE LAYER, DISSOLVE FIELD OR OBJECT ID AS ZONE fields, POP LAYER AS CLASS FIELD
-##GEO_ID AS CLASS FIELD, AND POP_TOTAL AS SUM FIELD
+##Use Input polygons as zone layer, dissolve field or object id as zone fields, pop layer as class layer
+##pop layer oid as class field, and pop total or population field as sum field
 
-#tabTable=arcpy.analysis.TabulateIntersections(in_zone_features, zone_fields, in_class_features, out_table, {class_fields}, {sum_fields})
+#explicit variable setup
+in_zone_features=inAreaFinal
+#for zone fields, either dissolve field or OID, need to get OID with oid_fieldname = arcpy.Describe(fc).OIDFieldName
+if inAreaDissField == "": #i.e., no dissolve field, get oid field name
+    zone_fields=arcpy.Describe(in_zone_features).OIDFieldName
+else:
+    zone_fields=inAreaDissField
+in_class_features=popLyrIntersect
+out_table='tabTable.dbf'
+class_fields=arcpy.Describe(in_class_features).OIDFieldName
+if popLyr1 == "": #if no user submitted population data
+    sum_fields='Total Population' #may need to change to 'P0010001' instead of alias
+else: #user submitted population data
+    sum_fields=popLyrField
+
+tabTable=arcpy.analysis.TabulateIntersections(in_zone_features, zone_fields, in_class_features, out_table, class_fields, sum_fields)
 
 
 ###########################################################
 ##PASS TABULATE FEATURES TABLE INTO arcpy.management.PivotTable(in_table, zone_fields, class_fields, population_field, out_table)
 
-#arcpy.management.PivotTable(tabTable, dissfield_or_obj, pivot_field, pop_field, out_table)
+arcpy.management.PivotTable(tabTable, zone_fields, class_fields, sum_fields, finalOutput.dbf)
 
 ##OUTPUT PIVOT TABLE AS FINAL OUTPUT
 
