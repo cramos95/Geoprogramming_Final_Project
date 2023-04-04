@@ -1,8 +1,13 @@
 import arcpy
+from arcpy import analysis #if I don't import this separately, arcpy.analysis.TabulateIntersection() won't work
 import sys
+
+
 
 #project path will be removed before importing to script tool
 projectPath = r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.aprx'
+arcpy.env.workspace=r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.gdb'
+arcpy.env.overwriteOutput = True
 
 #path for living atlas layer
 dataPath = r'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Census_2020_Redistricting_Blocks/FeatureServer'
@@ -83,9 +88,10 @@ def AddMsgAndPrint(msg, severity=0):
 
 #for testing
 inAreaFinal=r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\Shapefiles\Kyle\Jurisdiction.shp'
+inAreaDissField=""
+popLyr1=""
 
-
-
+#NEED TO WRAP BOTH POPULATION, USER SUBMITTED AND NON, IN IF/ELSE TO MOVE TO DEFAULT IF USER DOES NOT ADD DATA
 #############################################################
 ##USER PROVIDES POPULATION DATA
 
@@ -159,10 +165,10 @@ for maplayer in m.listLayers():
 #USING popLyrFinal FROM EITHER USER INPUT OR LIVING ATLAS, SELECT BY LOCATION
 
 #Extract population data intersecting input polygons to cut down on runtime, living atlas layer has 8 million features
-popLyrIntersect=arcpy.management.SelectLayerByLocation(popLyrFinal,'',inAreaFinal) #this works inside arcPro
-#arcpy.management.CopyFeatures(popLyrIntersect, popInt.shp,) #may not need to do this, just use input with selected features
+arcpy.management.SelectLayerByLocation(popLyrFinal,'',inAreaFinal) #setting this equal to a new variable does not work, I think I would need to copyFeatuers and set that to a new variable
 
-#its_working.gif
+print(arcpy.management.GetCount(popLyrFinal))
+
 
 
 ###########################################################
@@ -177,28 +183,44 @@ if inAreaDissField == "": #i.e., no dissolve field, get oid field name
     zone_fields=arcpy.Describe(in_zone_features).OIDFieldName
 else:
     zone_fields=inAreaDissField
-in_class_features=popLyrIntersect
-out_table='tabTable.dbf'
+in_class_features=popLyrFinal
+#out_table=arcpy.GetParameterAsText(4) #after testing
+out_table=r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.gdb\tabtable'
 class_fields=arcpy.Describe(in_class_features).OIDFieldName
 if popLyr1 == "": #if no user submitted population data
-    sum_fields='Total Population' #may need to change to 'P0010001' instead of alias
+    sum_fields='P0010001' #may need to change to 'P0010001' instead of alias
 else: #user submitted population data
     sum_fields=popLyrField
 
-tabTable=arcpy.analysis.TabulateIntersections(in_zone_features, zone_fields, in_class_features, out_table, class_fields, sum_fields)
+arcpy.analysis.TabulateIntersection(in_zone_features, zone_fields, in_class_features, out_table , class_fields, sum_fields)
 
 
 ###########################################################
-##PASS TABULATE FEATURES TABLE INTO arcpy.management.PivotTable(in_table, zone_fields, class_fields, population_field, out_table)
+#PASS TABULATE FEATURES TABLE INTO Calculate statistics to do a sum and group by input area.
+ttdesc=arcpy.Describe(out_table) #use this to make sure path to input is correct
+ttpath=ttdesc.catalogPath
+#finalOutput=arcpy.GetParameterAsText(5) #after testing
+finalOutput=r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.gdb\finalOutput'
+arcpy.analysis.Statistics(ttpath, finalOutput, [[sum_fields,"SUM"],["AREA","SUM"],["PERCENTAGE","SUM"]],zone_fields)
 
-arcpy.management.PivotTable(tabTable, zone_fields, class_fields, sum_fields, finalOutput.dbf)
+##OUTPUT STATS TABLE AS FINAL OUTPUT, need to clean up fields, change POO10001 to popTotal, remove extras etc.
 
-##OUTPUT PIVOT TABLE AS FINAL OUTPUT
-
-
+#STILL NEED TO DO
+#change comments from pivot table to statitics
+#change SUM_P0010001 to PopTotal
+#drop fields FREQUENCY, and maybe sum_area, sum_percentage
+#change zone fields name (2nd field in output table, can reference by index?) to (post dissolve) StudyArea_OID, or
+#dissolve field if user submitted dissolve field
+#join by zone_field OID/diss field name to dissolve shp?
+#and maybe add functionality for multiple study areas. Merge incoming polygon layers, keep OID only
+#to account for different schemas?
 
 #2020 Census Kyle:45,697
 #Our Estimate: 46,204
+#%diff=1.109%
 #Select All intersecting blocks: 54,942
+#%diff=20.23%
+#Select All blocks completely within: 36,604
+#%diff=24.84%
 
 aprx.save()
