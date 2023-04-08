@@ -212,14 +212,21 @@ arcpy.analysis.Statistics(ttpath, finalOutput, [[sum_fields,"SUM"]],zone_fields)
 #drop 'FREQUENCY' FIELD
 arcpy.management.DeleteField(finalOutput,['FREQUENCY'])
 
-#change field beginning with 'SUM_' to popTotal
-#get SUM_field to variable, will be different depending on user submitted or default population data, but will always start with 'SUM_'
+#change fields starting with with 'SUM_' to popTotal, change only other non-OID field to studyAreaID, which will be either the study area OID or the dissolve field.
+#get SUM_field and study area field to variables, they will be named different depending on user submitted or default population data
+#works bc only 3 fields total, the OID, the SUM_, and the 3rd field.
 fields=arcpy.ListFields(finalOutput)
+finalOutputOIDName=arcpy.Describe(finalOutput).OIDFieldName
 for field in fields:
-    if field.name.startswith('SUM_'):
-        alterField=field.name
+    if field.name != finalOutputOIDName:
+        if field.name.startswith('SUM_'):
+            alterField = field.name
+        else:
+            alterField1 = field.name
 
-arcpy.management.AlterField(finalOutput, alterField, 'popTotal')
+#change field names for final output using AlterField()
+arcpy.management.AlterField(finalOutput, alterField, '','popTotal')
+arcpy.management.AlterField(finalOutput, alterField1, '','studyAreaID')
 
 
 
@@ -229,11 +236,7 @@ arcpy.management.AlterField(finalOutput, alterField, 'popTotal')
 
 
 #STILL NEED TO DO
-
-#change SUM_P0010001 to PopTotal
-#drop fields FREQUENCY, and maybe sum_area, sum_percentage
-#change zone fields name (2nd field in output table, can reference by index?) to (post dissolve) StudyArea_OID, or
-#dissolve field if user submitted dissolve field
+#wrap user submitted vs default population in if/then statement
 #join by zone_field OID/diss field name to dissolve shp?
 #and maybe add functionality for multiple study areas. Merge incoming polygon layers, keep OID only
 #to account for different schemas?
