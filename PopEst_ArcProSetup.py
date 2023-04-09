@@ -52,7 +52,8 @@ if inArea1Desc.shapeType != "Polygon" :
     sys.exit()
 
 #check input study area for >1 features, if so, require dissolve field
-if arcpy.management.GetCount(inArea1) > 1:
+
+if int((arcpy.management.GetCount(inArea1))[0]) > 1: #getCount returns a Result object,  Result[0] references the actual output value, have to wrap in int() because returns string
     if inAreaDissField == "":
         AddMsgAndPrint("Input Study Area has more than 1 feature, dissolve field required.", 2)
         sys.exit()
