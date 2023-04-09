@@ -98,8 +98,8 @@ AddMsgAndPrint("Finished dissolve", 0)
 if popLyr1 != "":
     popLyrDesc = arcpy.Describe(popLyr1)
     if popLyr1Desc.shapeType != "Polygon" :
-    AddMsgAndPrint("User submitted population data must be of type polygon.", 2)
-    sys.exit()
+        AddMsgAndPrint("User submitted population data must be of type polygon.", 2)
+        sys.exit()
 
 #check for input population field
 if popLyr1 != "" and popLyrField == "":
