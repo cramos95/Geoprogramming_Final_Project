@@ -18,6 +18,16 @@ finalOutput=arcpy.GetParameterAsText(4) #required output table
 #path for living atlas layer
 dataPath = r'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Census_2020_Redistricting_Blocks/FeatureServer'
 
+
+# Will need to use mapObject.addDataFromPath() to add living atlas layer, therefore, must first create a project object, preferably with "CURRENT"
+#Will also use to add final output to current map. aprx.save() added at end of script as well.
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+
+# Set map object to variable, preferably with activeMap method
+m = aprx.activeMap
+
+
+
 ##---------------------------------------------------------------------------------------------------
 # CREATE FUNCTION TO ADD MESSAGES THROUGHOUT SCRIPT, taken from arcpy documentation
 def AddMsgAndPrint(msg, severity=0):
@@ -85,10 +95,7 @@ elif inAreaDissField == "":
         sys.exit()
 
 AddMsgAndPrint("Finished dissolve", 0)
-# for testing
-# inAreaFinal = r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\Shapefiles\Kyle\Jurisdiction.shp'
-# inAreaDissField = ""
-# popLyr1 = ""
+
 
 ##---------------------------------------------------------------------------------------------------
 #USER PROVIDES POPULATION DATA
@@ -134,13 +141,7 @@ else:
     ##---------------------------------------------------------------------------------------------------
     # USER DOES NOT PROVIDE POPULATION DATA, DEFAULT TO LIVING ATLAS LAYER
 
-    # Will need to use mapObject.addDataFromPath() to add living atlas layer, therefore, must first create a project object, preferably with "CURRENT"
-    aprx=arcpy.mp.ArcGISProject("CURRENT") #after testing, this should work inside tool
-    #aprx = arcpy.mp.ArcGISProject(projectPath)  # need to have map project closed and then save at end of script for this to work during testing
 
-    # Set map object to variable, preferably with activeMap method
-    m=aprx.activeMap #after testing, this should work inside tool
-    #m = aprx.listMaps()[0]
 
     # add the living atlas layer from path, with method on map object
     m.addDataFromPath(dataPath)  # works up to this point
@@ -155,6 +156,8 @@ else:
                 popLyrFinal = maplayer
 
 AddMsgAndPrint("Finished adding population data", 0)
+
+
 ##---------------------------------------------------------------------------------------------------
 # USING popLyrFinal FROM EITHER USER INPUT OR LIVING ATLAS, SELECT BY LOCATION
 
@@ -164,10 +167,10 @@ AddMsgAndPrint("Finished adding population data", 0)
 # inAreaDissField #may be blank if not user-submitted
 
 # Extract population data intersecting input polygons to cut down on runtime, living atlas layer has 8 million features
-arcpy.management.SelectLayerByLocation(popLyrFinal, '',inAreaFinal)  # setting this equal to a new variable does not work, I think I would need to copyFeatuers and set that to a new variable
-
-numSelected = (arcpy.management.GetCount(popLyrFinal))
-AddMsgAndPrint("{} features selected".format(numSelected), 0)
+# arcpy.management.SelectLayerByLocation(popLyrFinal, '',inAreaFinal)  # setting this equal to a new variable does not work, I think I would need to copyFeatuers and set that to a new variable
+#
+# numSelected = (arcpy.management.GetCount(popLyrFinal))
+# AddMsgAndPrint("{} features selected".format(numSelected), 0)
 
 ##---------------------------------------------------------------------------------------------------
 ##PASS SELECTED POPULATION FEATURES AND DISSOLVED INPUT POLYGONS INTO TABULATE INTERSECTIONS TOOL
@@ -179,7 +182,18 @@ in_zone_features = inAreaFinal
 
 # for zone fields, either dissolve field or OID, need to get OID with oid_fieldname = arcpy.Describe(fc).OIDFieldName
 if inAreaDissField == "":  # i.e., no dissolve field, get oid field name
-    zone_fields = arcpy.Describe(in_zone_features).OIDFieldName
+    oidField = arcpy.Describe(in_zone_features).OIDFieldName  #THIS STEP IS NOT WORKING, NOT PASSING OID FIELD AS GROUP BY FIELD IN SUM STATISTICS, might be because its returning 'OBJECTID' which creates a duplicate object id.
+    arcpy.management.AddField(in_zone_features, 'ObjID', 'TEXT') #add new field to hold OG OID field values
+    if oidField == 'OBJECTID': #check oid field name and pass into calculate field, cant figure out how ot pass variable in with !variable! notation
+        arcpy.management.CalculateField(in_zone_features, 'ObjID', '!OBJECTID!')
+    elif oidField == 'FID':
+        arcpy.management.CalculateField(in_zone_features, 'ObjID', '!FID!')
+
+    #set zone_fields, the case field for the sum/group by, to the newly created objID
+    zone_fields='objID'
+    AddMsgAndPrint(zone_fields, 0)
+    #add field objid and set equal to OIDFieldName to avoid duplicate 'OBJECTID' when passing into statistics
+
 else:
     zone_fields = inAreaDissField
 
@@ -204,15 +218,6 @@ tabTable = result
 #PASS TABULATE FEATURES TABLE INTO Statistics
 #to do a sum and group by input area.
 
-# use this to make sure path to input is correct
-# ttdesc = arcpy.Describe(tabTable)
-# ttpath = ttdesc.catalogPath
-
-# finalOutput=arcpy.GetParameterAsText(5) #after testing
-# finalOutput = r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.gdb\finalOutput'
-
-# run statistics
-# arcpy.analysis.Statistics(ttpath, finalOutput, [[sum_fields,"SUM"],["AREA","SUM"],["PERCENTAGE","SUM"]],zone_fields)
 arcpy.analysis.Statistics(tabTable, finalOutput, [[sum_fields, "SUM"]], zone_fields)
 
 ##---------------------------------------------------------------------------------------------------
@@ -239,19 +244,20 @@ if inAreaDissField != "":
                 arcpy.management.AlterField(finalOutput, alterField1, '', 'studyAreaID')
 
 #no dissolve field
-if inAreaDissField != "":
+if inAreaDissField == "":
     for field in fields:
-        if field.name != finalOutputOIDName:
-            if field.name.startswith('SUM_'):
-                alterField = field.name
-                arcpy.management.AlterField(finalOutput, alterField, '', 'popTotal')
+        if field.name.startswith('SUM_'):
+            alterField = field.name
+            arcpy.management.AlterField(finalOutput, alterField, '', 'popTotal')
 
 
+outDesc=arcpy.Describe(finalOutput)
+outPath=outDesc.catalogPath
+m.addDataFromPath(outPath)
 
 ##---------------------------------------------------------------------------------------------------
-#IF DEFAULT POPULATION DATA, SAVE PROJECT
-if popLyr1 == "":
-    aprx.save()
+#SAVE CURRENT PROJECT
+aprx.save()
 
 ##---------------------------------------------------------------------------------------------------
 #END
@@ -260,6 +266,8 @@ if popLyr1 == "":
 
 
 # STILL NEED TO DO
+#keep dissolve and tab intersections from writing to file to keep clutter down?
+#add final table to map? could use the aprx"current" add data from..?
 # join by zone_field OID/diss field name to dissolve shp?
 # and maybe add functionality for multiple study areas. Merge incoming polygon layers, keep OID only
 # to account for different schemas?
