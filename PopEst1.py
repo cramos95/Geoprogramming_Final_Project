@@ -84,7 +84,7 @@ inAreaFinal=r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\Final
 inAreaDissField=""
 popLyr1=""
 
-#NEED TO WRAP BOTH POPULATION, USER SUBMITTED AND NON, IN IF/ELSE TO MOVE TO DEFAULT IF USER DOES NOT ADD DATA
+
 ##---------------------------------------------------------------------------------------------------
 ##USER PROVIDES POPULATION DATA
 
@@ -116,36 +116,33 @@ popLyr1=""
 #     AddMsgAndPrint(arcpy.Getmessages(),0)
 #     sys.exit()
 
-#set input variable to popLyrFinal
-#popLyrFinal=popLyr1
+#If popLyr1 is not blank, i.e. user submits population data and makes it through the above checks then>
+#set input variable to popLyrFinal. Otherwise proceed to default population layer
+if popLyr1 != "":
+    popLyrFinal=popLyr1
+else:
+    ##---------------------------------------------------------------------------------------------------
+    #USER DOES NOT PROVIDE POPULATION DATA, DEFAULT TO LIVING ATLAS LAYER
 
+    #Will need to use mapObject.addDataFromPath() to add living atlas laye, therfore, must first create a project object, preferably with "CURRENT"
+    #aprx=arcpy.mp.ArcGISProject("CURRENT") #after testing, this should work inside tool
+    aprx=arcpy.mp.ArcGISProject(projectPath) #need to have map project closed and then save at end of script for this to work during testing
 
-##---------------------------------------------------------------------------------------------------
-#USER DOES NOT PROVIDE POPULATION DATA, DEFAULT TO LIVING ATLAS LAYER
+    #Set map object to variable, preferably with activeMap method
+    #m=aprx.activeMap #after testing, this should work inside tool
+    m=aprx.listMaps()[0]
 
+    #add the living atlas layer from path, with method on map object
+    m.addDataFromPath(dataPath) #works up to this point
 
-#Will need to use mapObject.addDataFromPath() to add living atlas layer
-#Therfore, must first create a project object, preferably with "CURRENT"
-#create arcPro Project object with "CURRENT", should work inside a toolbox script tool
-#aprx=arcpy.mp.ArcGISProject("CURRENT") #after testing, this should work inside tool
-aprx=arcpy.mp.ArcGISProject(projectPath) #need to have map project closed and then save at end of script for this to work during testing
-
-#Set map object to variable, preferably with activeMap method
-#m=aprx.activeMap #after testing, this should work inside tool
-m=aprx.listMaps()[0]
-
-#add the living atlas layer from path, with method on map object
-m.addDataFromPath(dataPath) #works up to this point
-
-#get newly added layer as popLyrFinal variable
-#Note, the layer imports as a group layer, and the sublayer needed is called 'Blocks', which is
-#is pretty generic and it seems inconsistent, somtimes called 'USA_BLOCK_GROUPS//Blocks, therefore, will get the layer into a variable by counting the number of features
-#for every layer in the map, if is feature layer and if count==8174955, its the layer we want. tested in arcPro
-for maplayer in m.listLayers():
-    if maplayer.isFeatureLayer:
-        if str(arcpy.management.GetCount(maplayer))=='8174955':
-            popLyrFinal=maplayer #set popLyrFinal equal to blocks layer
-
+    #get newly added layer as popLyrFinal variable
+    #Note, the layer imports as a group layer, and the sublayer needed is called 'Blocks', which is
+    #generic and it seems inconsistent, somtimes called 'USA_BLOCK_GROUPS//Blocks, therefore, will get the layer into a variable by counting the number of features
+    #for every layer in the map, if is feature layer and if count==8174955, its the layer we want. tested in arcPro
+    for maplayer in m.listLayers():
+        if maplayer.isFeatureLayer:
+            if str(arcpy.management.GetCount(maplayer))=='8174955':
+                popLyrFinal=maplayer
 
 
 ##---------------------------------------------------------------------------------------------------
@@ -153,7 +150,7 @@ for maplayer in m.listLayers():
 
 #at this point, the following variables will be set
 #inAreaFinal #the user submitted study area
-#popLyrFinal #eithe the user submitted or default population layer
+#popLyrFinal #either the user submitted or default population layer
 #inAreaDissField #may be blank if not user-submitted
 
 #Extract population data intersecting input polygons to cut down on runtime, living atlas layer has 8 million features
