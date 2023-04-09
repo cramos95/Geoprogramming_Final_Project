@@ -65,6 +65,7 @@ if inAreaDissField != "":
 
 
 #---------------------------------------------------------------------------------------------------
+#DISSOLVE STUDY AREA
 #If user input dissolve field, dissolve with field, else dissolve all, wrap in try/except with messages
 #Either way, set output equal to inAreaFinal variable
 if inAreaDissField != "":
@@ -199,7 +200,8 @@ tabTable = result
 
 
 ##---------------------------------------------------------------------------------------------------
-# PASS TABULATE FEATURES TABLE INTO Statistics to do a sum and group by input area.
+#PASS TABULATE FEATURES TABLE INTO Statistics
+#to do a sum and group by input area.
 
 # use this to make sure path to input is correct
 # ttdesc = arcpy.Describe(tabTable)
@@ -213,7 +215,8 @@ tabTable = result
 arcpy.analysis.Statistics(tabTable, finalOutput, [[sum_fields, "SUM"]], zone_fields)
 
 ##---------------------------------------------------------------------------------------------------
-##OUTPUT STATS TABLE AS FINAL OUTPUT, need to clean up fields, change POO10001 to popTotal, remove extras etc.
+##OUTPUT STATS TABLE AS FINAL OUTPUT,
+#clean up fields, change POO10001 to popTotal, remove extras etc.
 
 # drop 'FREQUENCY' FIELD
 arcpy.management.DeleteField(finalOutput, ['FREQUENCY'])
