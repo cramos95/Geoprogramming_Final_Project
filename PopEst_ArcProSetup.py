@@ -227,16 +227,26 @@ arcpy.management.DeleteField(finalOutput, ['FREQUENCY'])
 # works bc only 3 fields total, the OID, the SUM_, and the 3rd field.
 fields = arcpy.ListFields(finalOutput)
 finalOutputOIDName = arcpy.Describe(finalOutput).OIDFieldName
-for field in fields:
-    if field.name != finalOutputOIDName:
-        if field.name.startswith('SUM_'):
-            alterField = field.name
-        else:
-            alterField1 = field.name
+#user submits dissolve field
+if inAreaDissField != "":
+    for field in fields:
+        if field.name != finalOutputOIDName:
+            if field.name.startswith('SUM_'):
+                alterField = field.name
+                arcpy.management.AlterField(finalOutput, alterField, '', 'popTotal')
+            else:
+                alterField1 = field.name
+                arcpy.management.AlterField(finalOutput, alterField1, '', 'studyAreaID')
 
-# change field names for final output using AlterField()
-arcpy.management.AlterField(finalOutput, alterField, '', 'popTotal')
-arcpy.management.AlterField(finalOutput, alterField1, '', 'studyAreaID')
+#no dissolve field
+if inAreaDissField != "":
+    for field in fields:
+        if field.name != finalOutputOIDName:
+            if field.name.startswith('SUM_'):
+                alterField = field.name
+                arcpy.management.AlterField(finalOutput, alterField, '', 'popTotal')
+
+
 
 ##---------------------------------------------------------------------------------------------------
 #IF DEFAULT POPULATION DATA, SAVE PROJECT
@@ -257,9 +267,13 @@ if popLyr1 == "":
 #FIRST ANALYSIS
 # 2020 Census Kyle:45,697
 # Our Estimate: 46,204
-# %diff=1.109%
+# %diff=1.109% overestimation
 # Select All intersecting blocks: 54,942
 # %diff=20.23%
 # Select All blocks completely within: 36,604
 # %diff=24.84%
 
+
+# 2020 Census San Marcos: 67,553
+# Our Estimate: 67,801
+#% diff = 0.36% overestimation
