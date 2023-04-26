@@ -50,4 +50,4 @@ than the known populations.  However, for certain cities the error is higher tha
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+[License](https://choosealicense.com/licenses/mit/)
