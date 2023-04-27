@@ -15,7 +15,7 @@ Download and add the ArcGIS Toolbox to an ArcGIS Pro Project to use the tool.
 
 
 ## Usage
-[GIF](https://git.txstate.edu/cgr50/GIS_Final_Project/blob/master/Demo%202023-04-26%2017-48-062.gif)
+
 
 ### There are two options for the use of this tool
 
