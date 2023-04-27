@@ -3,10 +3,7 @@ from arcpy import analysis  # if I don't import this separately, arcpy.analysis.
 import sys
 
 # INITIAL SETUP
-# project path will be removed before importing to script tool
-# projectPath = r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.aprx'
-# arcpy.env.workspace = r'C:\Users\lives\OneDrive\TexasStateGrad\Spring2023\GIS_Python\FinalProject\Data\GEO5419_PopEstimate\GEO5419_PopEstimate.gdb'
-# arcpy.env.overwriteOutput = True
+
 
 #INPUT PARAMETERS
 inArea1=arcpy.GetParameterAsText(0) #required study area
@@ -23,7 +20,7 @@ dataPath = r'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/U
 #Will also use to add final output to current map. aprx.save() added at end of script as well.
 aprx = arcpy.mp.ArcGISProject("CURRENT")
 
-# Set map object to variable, preferably with activeMap method
+# Set map object to variable with activeMap method
 m = aprx.activeMap
 
 
@@ -77,6 +74,7 @@ if inAreaDissField != "":
 
 #---------------------------------------------------------------------------------------------------
 #DISSOLVE STUDY AREA
+
 #If user input dissolve field, dissolve with field, else dissolve all, wrap in try/except with messages
 #Either way, set output equal to inAreaFinal variable
 if inAreaDissField != "":
@@ -105,7 +103,7 @@ AddMsgAndPrint("Finished dissolve", 0)
 #check for shape=polygon
 if popLyr1 != "":
     popLyrDesc = arcpy.Describe(popLyr1)
-    if popLyr1Desc.shapeType != "Polygon" :
+    if popLyrDesc.shapeType != "Polygon" :
         AddMsgAndPrint("User submitted population data must be of type polygon.", 2)
         sys.exit()
 
@@ -141,10 +139,8 @@ else:
     ##---------------------------------------------------------------------------------------------------
     # USER DOES NOT PROVIDE POPULATION DATA, DEFAULT TO LIVING ATLAS LAYER
 
-
-
     # add the living atlas layer from path, with method on map object
-    m.addDataFromPath(dataPath)  # works up to this point
+    m.addDataFromPath(dataPath)
 
     # get newly added layer as popLyrFinal variable
     # Note, the layer imports as a group layer, and the sublayer needed is called 'Blocks', which is
@@ -159,21 +155,13 @@ AddMsgAndPrint("Finished adding population data", 0)
 
 
 ##---------------------------------------------------------------------------------------------------
-# USING popLyrFinal FROM EITHER USER INPUT OR LIVING ATLAS, SELECT BY LOCATION
+##PASS POPULATION FEATURES AND DISSOLVED INPUT POLYGONS INTO TABULATE INTERSECTIONS TOOL
 
 # at this point, the following variables will be set
 # inAreaFinal #the user submitted study area
 # popLyrFinal #either the user submitted or default population layer
 # inAreaDissField #may be blank if not user-submitted
 
-# Extract population data intersecting input polygons to cut down on runtime, living atlas layer has 8 million features
-# arcpy.management.SelectLayerByLocation(popLyrFinal, '',inAreaFinal)  # setting this equal to a new variable does not work, I think I would need to copyFeatuers and set that to a new variable
-#
-# numSelected = (arcpy.management.GetCount(popLyrFinal))
-# AddMsgAndPrint("{} features selected".format(numSelected), 0)
-
-##---------------------------------------------------------------------------------------------------
-##PASS SELECTED POPULATION FEATURES AND DISSOLVED INPUT POLYGONS INTO TABULATE INTERSECTIONS TOOL
 ##Use Input polygons as zone layer, dissolve field or object id as zone fields, pop layer as class layer
 ##pop layer oid as class field, and pop total or population field as sum field
 
@@ -216,12 +204,14 @@ tabTable = result
 
 ##---------------------------------------------------------------------------------------------------
 #PASS TABULATE FEATURES TABLE INTO Statistics
+
 #to do a sum and group by input area.
 
 arcpy.analysis.Statistics(tabTable, finalOutput, [[sum_fields, "SUM"]], zone_fields)
 
 ##---------------------------------------------------------------------------------------------------
-##OUTPUT STATS TABLE AS FINAL OUTPUT,
+##OUTPUT STATS TABLE AS FINAL OUTPUT
+
 #clean up fields, change POO10001 to popTotal, remove extras etc.
 
 # drop 'FREQUENCY' FIELD
@@ -232,6 +222,7 @@ arcpy.management.DeleteField(finalOutput, ['FREQUENCY'])
 # works bc only 3 fields total, the OID, the SUM_, and the 3rd field.
 fields = arcpy.ListFields(finalOutput)
 finalOutputOIDName = arcpy.Describe(finalOutput).OIDFieldName
+
 #user submits dissolve field
 if inAreaDissField != "":
     for field in fields:
@@ -261,19 +252,17 @@ aprx.save()
 
 ##---------------------------------------------------------------------------------------------------
 #END
-##its working! on test data anyway
 
 
 
-# STILL NEED TO DO
+
+#Possible Future Functionality
 #keep dissolve and tab intersections from writing to file to keep clutter down?
-#add final table to map? could use the aprx"current" add data from..?
-# join by zone_field OID/diss field name to dissolve shp?
-# and maybe add functionality for multiple study areas. Merge incoming polygon layers, keep OID only
-# to account for different schemas?
+#Maybe add functionality for multiple study areas. Merge incoming polygon layers, keep OID only # to account for different schemas?
+#Split incoming study areas to pass into tabulate intersections one at a time to improve runtime
 
-#FIRST ANALYSIS
-# 2020 Census Kyle:45,697
+#INITIAL ANALYSIS
+# Texas Demographic Center 2020 Census Kyle:45,697
 # Our Estimate: 46,204
 # %diff=1.109% overestimation
 # Select All intersecting blocks: 54,942
@@ -282,6 +271,6 @@ aprx.save()
 # %diff=24.84%
 
 
-# 2020 Census San Marcos: 67,553
+# Texas Demographic Center 2020 Census San Marcos: 67,553
 # Our Estimate: 67,801
 #% diff = 0.36% overestimation
