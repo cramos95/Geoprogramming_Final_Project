@@ -41,7 +41,7 @@ than the known populations.  However, for certain cities the error is higher tha
 
 
 ## Read the Research
-[Research Paper]()
+[Research Paper](https://git.txstate.edu/cgr50/GIS_Final_Project/blob/master/Ramos_Jackson_Research.pdf)
 
 
 
