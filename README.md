@@ -31,11 +31,7 @@ In this case, the user must also select which of the fields contains the populat
 
 If the user-submitted study area feature layer or feature class contains more than 1 feature (i.e. more than 1 city or area polygon), the user must select a field to dissolve on. This will usually be the field containing the city names, but can also be a UID field. Whichever field is used will be displayed in the output table to identify the separate population estimates. For example in the table below, the City_Name field is the field selected as the dissolve field:
 
-FID City_Name PopEstimate
 
-0 Austin  950,000
-
-1 San Marcos  55,000
 
 | FID       | City_Name           | PopEstimate  |
 | ------------- |:-------------:| -----:|
