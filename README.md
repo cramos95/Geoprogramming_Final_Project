@@ -53,8 +53,11 @@ than the known populations.  However, for certain cities the error is higher tha
 ### Data in Folder
 
 The file, "GEO5419_PopEstimate.atbx" is the ESRI Toolbox containing the script tool described here
+
 The file, "PopEst_ArcProSetup.py" is the python code associated (and embedded in) the script tool described here
+
 The file, "README.html" is a help file describing the use of the script tool described here
+
 The file, "TestData1.zip" Contains a shapefile named "Cities".  This Cities shapefile contains the Municipal City limits boundaries for the appx. 1200 cities in Texas.  To test the tool, select one or two of these cities as described above, and then pass the shapefile with the selection into the script tool as the input study area. 
 
 
